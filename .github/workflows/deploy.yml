@@ -1,64 +1,16 @@
-name: Deploy two Vite apps to GitHub Pages
+- name: Install root deps
+  run: npm ci
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+- name: Build root app
+  run: npm run build
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+- name: Install second deps
+  run: npm ci --prefix second
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+- name: Build second app
+  run: npm run build --prefix second
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      # Build root app
-      - name: Install root deps
-        run: npm ci
-      - name: Build root app
-        run: npm run build
-
-      # Build second app
-      - name: Install second deps
-        run: |
-          cd second
-          npm ci
-      - name: Build second app
-        run: |
-          cd second
-          npm run build
-
-      # Combine outputs into a single publish folder
-      - name: Prepare publish folder
-        run: |
-          rm -rf publish
-          mkdir -p publish/second
-          cp -R dist/* publish/
-          cp -R second/dist/* publish/second/
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: publish
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+- name: Combine outputs for Pages
+  run: |
+    mkdir -p dist/second
+    cp -r second/dist/* dist/second/
